@@ -7,25 +7,29 @@ const DRAPP_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IktuWWlxNTEyNkV
 const MI_NUMERO = "5491140962011";
 
 async function enviarReporteControl() {
-    console.log(`[${new Date().toLocaleString()}] Generando reporte de turnos...`);
+    // 1. CALCULAR RANGO EXACTO DE MAÑANA (00:00 a 23:59)
+    // Usamos la fecha actual en Argentina
+    const hoy = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
 
-    // Rango de MAÑANA
-    const mañanaInicio = new Date();
-    mañanaInicio.setDate(mañanaInicio.getDate() + 1);
+    // Mañana empieza a las 00:00:00
+    const mañanaInicio = new Date(hoy);
+    mañanaInicio.setDate(hoy.getDate() + 1);
     mañanaInicio.setHours(0, 0, 0, 0);
 
-    const mañanaFin = new Date();
-    mañanaFin.setDate(mañanaFin.getDate() + 1);
+    // Mañana termina a las 23:59:59
+    const mañanaFin = new Date(hoy);
+    mañanaFin.setDate(hoy.getDate() + 1);
     mañanaFin.setHours(23, 59, 59, 999);
 
+    console.log(`[LOG] Buscando turnos desde: ${mañanaInicio.toLocaleString()} hasta: ${mañanaFin.toLocaleString()}`);
+
     try {
-        // 1. Obtener datos de DrApp
-        const resDrapp = await axios.post("https://api.drapp.la/teams/d095a09b/events/query", {
+        const response = await axios.post("https://api.drapp.la/teams/d095a09b/events/query", {
             cancelled: false,
             noshow: true,
             resource: "resources/4b706876",
-            startsAt: mañanaInicio.getTime(),
-            endsAt: mañanaFin.getTime()
+            startsAt: mañanaInicio.getTime(), // Milisegundos exactos
+            endsAt: mañanaFin.getTime()      // Milisegundos exactos
         }, {
             headers: {
                 'Authorization': `Bearer ${DRAPP_TOKEN}`,
@@ -33,28 +37,37 @@ async function enviarReporteControl() {
             }
         });
 
-        const turnos = resDrapp.data;
+        const turnos = response.data;
 
-        if (!turnos || turnos.length === 0) {
+        // Filtrar manualmente por si la API de DrApp se pasa de rango (doble seguridad)
+        const turnosFiltrados = turnos.filter(t => {
+            const fechaTurno = new Date(t.startsAt);
+            return fechaTurno >= mañanaInicio && fechaTurno <= mañanaFin;
+        });
+
+        if (!turnosFiltrados || turnosFiltrados.length === 0) {
             await enviarWhatsApp(MI_NUMERO, "📭 *Reporte:* No hay turnos agendados para mañana.");
             return;
         }
 
-        // 2. Armar el mensaje de texto
-        let mensajeReporte = `📋 *RESUMEN DE TURNOS MAÑANA*\n`;
-        mensajeReporte += `📅 Fecha: ${new Date(mañanaInicio).toLocaleDateString('es-AR')}\n\n`;
+        // 2. CONSTRUIR MENSAJE
+        let mensaje = `📋 *CONTROL DE TURNOS (SOLO MAÑANA)*\n`;
+        mensaje += `📅 Fecha: ${mañanaInicio.toLocaleDateString('es-AR')}\n\n`;
 
-        turnos.forEach((t, i) => {
+        // Ordenar por hora para que el reporte sea legible
+        turnosFiltrados.sort((a, b) => a.startsAt - b.startsAt);
+
+        turnosFiltrados.forEach((t, i) => {
             const nombre = t.consumer?.label || "Sin nombre";
             const hora = t.time || "--:--";
-            mensajeReporte += `${i + 1}. 🕒 ${hora} - ${nombre}\n`;
+            mensaje += `${i + 1}. 🕒 ${hora} - ${nombre}\n`;
         });
 
-        // 3. Enviar vía WASenderAPI
-        await enviarWhatsApp(MI_NUMERO, mensajeReporte);
+        // 3. ENVIAR A WASENDER
+        await enviarWhatsApp(MI_NUMERO, mensaje);
 
     } catch (error) {
-        console.error("❌ Error en el proceso:", error.response?.data || error.message);
+        console.error("Error:", error.response?.data || error.message);
     }
 }
 
@@ -69,17 +82,15 @@ async function enviarWhatsApp(numero, texto) {
                 'Content-Type': 'application/json'
             }
         });
-        console.log(`✅ Reporte enviado a ${numero}`);
+        console.log("✅ Reporte enviado correctamente.");
     } catch (error) {
-        console.error(`❌ Error Wasender:`, error.response?.data || error.message);
+        console.error("❌ Error Wasender:", error.response?.data || error.message);
     }
 }
 
-// Programado para las 20:00 hs de Argentina
-cron.schedule('0 20 * * *', () => {
+// Programar a las 00:00 hs de Argentina
+cron.schedule('0 0 * * *', () => {
     enviarReporteControl();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
 });
-
-console.log("Bot de control activo. El reporte se enviará a las 20:00 hs.");
