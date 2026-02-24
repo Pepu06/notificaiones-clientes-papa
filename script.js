@@ -100,7 +100,7 @@ async function enviarWhatsApp(numero, texto) {
 }
 
 // Programado para las 10:30 AM
-cron.schedule('37 10 * * *', () => {
+cron.schedule('30 11 * * *', () => {
     procesarTurnosDeMañana();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
