@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const WASENDER_TOKEN = process.env.WASENDER_TOKEN;
 const CALENDAR_ID = process.env.CALENDAR_ID;
+const TU_NUMERO = "5491140962011"; // Tu número para el resumen
 
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
@@ -36,60 +37,73 @@ async function procesarTurnosDeMañana() {
         const eventos = res.data.items;
         if (!eventos || eventos.length === 0) {
             console.log("No hay turnos para mañana.");
+            await enviarWhatsApp(TU_NUMERO, "Hola! No hay eventos programados para mañana en el calendario.");
             return;
         }
 
-        console.log(`Se encontraron ${eventos.length} turnos. Iniciando envío uno por minuto...`);
+        let resumenParaVos = "📅 *Resumen de turnos para mañana:*\n\n";
+        console.log(`Se encontraron ${eventos.length} eventos.`);
 
+        // 1. Procesar envíos individuales a pacientes
         for (let i = 0; i < eventos.length; i++) {
             const evento = eventos[i];
+            const hora = new Date(evento.start.dateTime).toLocaleTimeString('es-AR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Ir armando el resumen para mandarte a vos al final
+            resumenParaVos += `• ${hora}: ${evento.summary}\n`;
+
             const match = evento.summary.match(/\[(.*?)\]/);
             const telefono = match ? match[1].replace(/\s+/g, '') : null;
 
             if (telefono) {
-                const hora = new Date(evento.start.dateTime).toLocaleTimeString('es-AR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const mensajePaciente = `Hola! Te recordamos tu turno para mañana a las ${hora}. Por favor confirmar asistencia.`;
+                await enviarWhatsApp(telefono, mensajePaciente);
 
-                await enviarWhatsApp(telefono, hora);
-
-                // Si NO es el último mensaje, esperamos 60 segundos
+                // Esperar 1 minuto entre pacientes
                 if (i < eventos.length - 1) {
-                    console.log(`Esperando 60 segundos para el próximo envío...`);
+                    console.log(`Esperando 60 segundos para el próximo paciente...`);
                     await new Promise(resolve => setTimeout(resolve, 60000));
                 }
             }
         }
-        console.log("Todos los recordatorios de mañana han sido procesados.");
+
+        // 2. Enviarte el resumen completo a vos
+        console.log("Enviando resumen al administrador...");
+        await enviarWhatsApp(TU_NUMERO, resumenParaVos);
+
+        console.log("Proceso diario finalizado correctamente.");
 
     } catch (error) {
         console.error("Error al leer calendario:", error);
     }
 }
 
-async function enviarWhatsApp(numero, hora) {
+// Función de envío genérica
+async function enviarWhatsApp(numero, texto) {
     try {
         await axios.post("https://www.wasenderapi.com/api/send-message", {
             to: numero,
-            text: `Hola! Te recordamos tu turno para mañana a las ${hora}. Por favor confirmar asistencia.`
+            text: texto
         }, {
             headers: {
                 'Authorization': `Bearer ${WASENDER_TOKEN}`,
                 'Content-Type': 'application/json'
             }
         });
-        console.log(`✅ Mensaje enviado a ${numero} para las ${hora}`);
+        console.log(`✅ WhatsApp enviado a: ${numero}`);
     } catch (error) {
         console.error(`❌ Error enviando a ${numero}:`, error.response?.data || error.message);
     }
 }
 
 // Programado para las 10:30 AM
-cron.schedule('30 10 * * *', () => {
+cron.schedule('37 10 * * *', () => {
     procesarTurnosDeMañana();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
 });
 
-console.log("Bot de recordatorios de Calendar activo (1 envío/min)...");
+console.log("Bot activo. Enviará recordatorios a pacientes y resumen a tu número.");
