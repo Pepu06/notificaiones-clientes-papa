@@ -6,6 +6,11 @@ const WASENDER_TOKEN = process.env.WASENDER_TOKEN;
 const DRAPP_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IktuWWlxNTEyNkVxOEoxeUxQc1dpTCJ9.eyJodHRwczovL2FwaS5kcmFwcC5sYS9lbWFpbCI6InR1cm5vc2NvbnN1bHRvcmlvc2FudGFmZUBnbWFpbC5jb20iLCJodHRwczovL2FwaS5kcmFwcC5sYS9zZXR0aW5ncyI6e30sImh0dHBzOi8vYXBpLmRyYXBwLmxhL3ZlcmlmaWVkIjp0cnVlLCJpc3MiOiJodHRwczovL2F1dGguZHJhcHAubGEvIiwic3ViIjoiYXV0aDB8NjZlYzMxZTFkMTY3MTRjNzg1NGUyYmI2IiwiYXVkIjpbImh0dHBzOi8vYXBpLmRyYXBwLmxhIiwiaHR0cHM6Ly9kcmFwcC5hdS5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzcxOTcyNzcxLCJleHAiOjE3NzIwNTkxNzEsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJhenAiOiJVZlhHYjVCMGV6S0hSR202ZmthYzZQVGZjd21xdGxYayIsInBlcm1pc3Npb25zIjpbXX0.m-zGdCt1YASJ02kwuzfePwZUiqKvn8alltCeADxQ0qByyFdSP9GFSqKXmywO4fD-Z90FBOcoWDkNjc-fuI1c3_gXSJ6AQZPvtJSZRQ9YNacN76N20kiF-4GjMyatyadf9GaTC5JuNZnHmZlqRq8VX3KKeycMCBkRHRe31gQ2Ucf-oLcnGIK8rdgLsadQTjDbouS4vPW29fg12geit74Gsjsb7Jss7UY39i2cM6-eJfBol2m36oqt87OkWLmmlYvFT1yhMz2vNrmFDV-cTInChJpEb7x3g-4fP4xXQq_RSEjCbGUTDecVrk_zgBDSiXvVNF9HoJmEh4K3g-zSbJPARw"; // Recordá renovarlo si expira
 const MI_NUMERO = "5491140962011";
 
+function limpiarTelefono(tel) {
+    if (!tel) return null;
+    return tel.replace(/\D/g, ''); // Quita todo lo que no sea número
+}
+
 async function enviarReporteControl() {
     // 1. CALCULAR RANGO EXACTO DE MAÑANA (00:00 a 23:59)
     // Usamos la fecha actual en Argentina
@@ -60,7 +65,12 @@ async function enviarReporteControl() {
         turnosFiltrados.forEach((t, i) => {
             const nombre = t.consumer?.label || "Sin nombre";
             const hora = t.time || "--:--";
-            mensaje += `${i + 1}. 🕒 ${hora} - ${nombre}\n`;
+            const telefono = limpiarTelefono(t.consumer?.phone);
+            if (telefono) {
+                mensaje += `${i + 1}. 🕒 ${hora} - ${nombre} 📞 ${telefono}\n`;
+            } else {
+                mensaje += `${i + 1}. 🕒 ${hora} - ${nombre}\n`;
+            }
         });
 
         // 3. ENVIAR A WASENDER
@@ -88,8 +98,8 @@ async function enviarWhatsApp(numero, texto) {
     }
 }
 
-// Programar a las 00:00 hs de Argentina
-cron.schedule('0 0 * * *', () => {
+// Programar a las 21:00 hs de Argentina
+cron.schedule('0 21 * * *', () => {
     enviarReporteControl();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
