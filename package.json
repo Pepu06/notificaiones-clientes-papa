@@ -6,6 +6,6 @@
     "node-cron": "^4.2.1"
   },
   "scripts": {
-    "start": "node test.js"
+    "start": "node script_papa.js"
   }
 }
