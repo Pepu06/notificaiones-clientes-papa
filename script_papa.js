@@ -149,6 +149,4 @@ cron.schedule('0 8 * * *', async () => {
     timezone: "America/Argentina/Buenos_Aires"
 });
 
-iniciarBot();
-
 console.log("Bot activo. Enviará resumen y recordatorios a las 8:00 AM para los eventos de mañana.");
