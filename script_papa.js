@@ -78,18 +78,22 @@ async function enviarResumenMananaAPapa() {
     }
 }
 
-async function enviarRecordatorios24hClientes() {
-    console.log("Buscando clientes para recordar 24 horas antes...");
+async function enviarRecordatoriosAClientes() {
+    console.log("Enviando recordatorios a clientes para mañana...");
 
-    const ahora = new Date();
-    const ventanaInicio = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
-    const ventanaFin = new Date(ventanaInicio.getTime() + 15 * 60 * 1000 - 1);
+    const mananaInicio = new Date();
+    mananaInicio.setDate(mananaInicio.getDate() + 1);
+    mananaInicio.setHours(0, 0, 0, 0);
+
+    const mananaFin = new Date();
+    mananaFin.setDate(mananaFin.getDate() + 1);
+    mananaFin.setHours(23, 59, 59, 999);
 
     try {
-        const eventos = await obtenerEventosEntre(ventanaInicio.toISOString(), ventanaFin.toISOString());
+        const eventos = await obtenerEventosEntre(mananaInicio.toISOString(), mananaFin.toISOString());
 
         if (eventos.length === 0) {
-            console.log("No hay clientes para avisar en esta ventana de 24 horas.");
+            console.log("No hay clientes para avisar mañana.");
             return;
         }
 
@@ -97,14 +101,13 @@ async function enviarRecordatorios24hClientes() {
             const evento = eventos[i];
             const telefono = evento.summary.match(/\+\d[\d\s-]{7,}/)?.[0]?.replace(/\D/g, '') || null;
 
-            console.log(`Evento: ${evento.summary}, Teléfono extraído: ${telefono}`);
-
             if (!telefono) {
                 continue;
             }
 
             const hora = obtenerHoraEvento(evento);
-            const mensajePaciente = `Hola! Te recuerdo que te espero mañana, a las ${hora}.`;
+            const direccion = evento.location || "la dirección acordada";
+            const mensajePaciente = `Hola! Te recuerdo que te espero hoy, a las ${hora}\nen ${direccion}. \n\nGonzalez Soro, servicios inmobiliarios.\n\n_Por favor *reacciona* con un "👍" para confirmar._`;
             await enviarWhatsApp(telefono, mensajePaciente);
 
             if (i < eventos.length - 1) {
@@ -113,9 +116,9 @@ async function enviarRecordatorios24hClientes() {
             }
         }
 
-        console.log("Recordatorios 24 horas enviados correctamente.");
+        console.log("Recordatorios enviados correctamente.");
     } catch (error) {
-        console.error("Error al enviar recordatorios 24 horas:", error);
+        console.error("Error al enviar recordatorios:", error);
     }
 }
 
@@ -137,18 +140,15 @@ async function enviarWhatsApp(numero, texto) {
     }
 }
 
-// 1) A las 20:00 todos los días: resumen de quién viene mañana a NUMERO_MAMA
-cron.schedule('0 20 * * *', () => {
-    enviarResumenMananaAMama();
+// A las 8:00 AM todos los días: resumen de mañana + recordatorios a clientes
+cron.schedule('0 8 * * *', async () => {
+    await enviarRecordatoriosAClientes();
+    await new Promise(resolve => setTimeout(resolve, 60000));
+    enviarResumenMananaAPapa();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
 });
 
-// 2) Cada 15 minutos: recordatorio a clientes exactamente 24h antes
-cron.schedule('*/15 * * * *', () => {
-    enviarRecordatorios24hClientes();
-}, {
-    timezone: "America/Argentina/Buenos_Aires"
-});
+iniciarBot();
 
-console.log("Bot activo. Enviará resumen diario (20:00) y recordatorios a clientes 24h antes.");
+console.log("Bot activo. Enviará resumen y recordatorios a las 8:00 AM para los eventos de mañana.");
