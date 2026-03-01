@@ -24,7 +24,7 @@ function obtenerFechaInicioEvento(evento) {
 
 function obtenerHoraEvento(evento) {
     const fechaEvento = obtenerFechaInicioEvento(evento);
-    fechaEvento.setHours(fechaEvento.getHours() - 2);
+    fechaEvento.setHours(fechaEvento.getHours() - 3);
     return fechaEvento.toLocaleTimeString('es-AR', {
         hour: '2-digit',
         minute: '2-digit'
@@ -108,7 +108,7 @@ async function enviarRecordatoriosAClientes() {
             }
 
             const fecha = obtenerFechaInicioEvento(evento);
-            fecha.setHours(fecha.getHours() - 2);
+            fecha.setHours(fecha.getHours() - 3);
             const hora = fecha.toLocaleTimeString('es-AR', {
                 hour: '2-digit',
                 minute: '2-digit'
