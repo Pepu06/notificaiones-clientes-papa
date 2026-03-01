@@ -23,7 +23,9 @@ function obtenerFechaInicioEvento(evento) {
 }
 
 function obtenerHoraEvento(evento) {
-    return obtenerFechaInicioEvento(evento).toLocaleTimeString('es-AR', {
+    const fechaEvento = obtenerFechaInicioEvento(evento);
+    fechaEvento.setHours(fechaEvento.getHours() - 2);
+    return fechaEvento.toLocaleTimeString('es-AR', {
         hour: '2-digit',
         minute: '2-digit'
     });
@@ -105,7 +107,12 @@ async function enviarRecordatoriosAClientes() {
                 continue;
             }
 
-            const hora = obtenerHoraEvento(evento);
+            const fecha = obtenerFechaInicioEvento(evento);
+            fecha.setHours(fecha.getHours() - 2);
+            const hora = fecha.toLocaleTimeString('es-AR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             const direccion = evento.location || "la dirección acordada";
             const mensajePaciente = `Hola! Te recuerdo que te espero hoy, a las ${hora}\nen ${direccion}. \n\nGonzalez Soro, servicios inmobiliarios.\n\n_Por favor *reacciona* con un "👍" para confirmar._`;
             await enviarWhatsApp(telefono, mensajePaciente);
