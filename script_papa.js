@@ -53,11 +53,11 @@ async function enviarResumenHoyAPapa() {
     console.log("Armando resumen de hoy para papá...");
 
     const mananaInicio = new Date();
-    mananaInicio.setDate(mananaInicio.getDate() + 1);
+    mananaInicio.setDate(mananaInicio.getDate());
     mananaInicio.setHours(0, 0, 0, 0);
 
     const mananaFin = new Date();
-    mananaFin.setDate(mananaFin.getDate() + 1);
+    mananaFin.setDate(mananaFin.getDate());
     mananaFin.setHours(23, 59, 59, 999);
 
     try {
