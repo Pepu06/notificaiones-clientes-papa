@@ -116,11 +116,6 @@ async function enviarRecordatoriosAClientes() {
             const direccion = evento.location || "la dirección acordada";
             const mensajePaciente = `Hola! Te recuerdo que te espero hoy, a las ${hora}\nen ${direccion}. \n\nGonzalez Soro, servicios inmobiliarios.\n\n_Por favor *reacciona* con un "👍" para confirmar._`;
             await enviarWhatsApp(telefono, mensajePaciente);
-
-            if (i < eventos.length - 1) {
-                console.log("Esperando 60 segundos para el próximo cliente...");
-                await new Promise(resolve => setTimeout(resolve, 60000));
-            }
         }
 
         console.log("Recordatorios enviados correctamente.");
@@ -149,8 +144,7 @@ async function enviarWhatsApp(numero, texto) {
 
 // A las 8:00 AM todos los días: resumen de hoy + recordatorios a clientes
 cron.schedule('0 8 * * *', async () => {
-    await enviarResumenHoyAPapa();
-    await new Promise(resolve => setTimeout(resolve, 60000));
+    enviarResumenHoyAPapa();
     enviarRecordatoriosAClientes();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
