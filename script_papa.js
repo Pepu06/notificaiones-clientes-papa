@@ -149,9 +149,9 @@ async function enviarWhatsApp(numero, texto) {
 
 // A las 8:00 AM todos los días: resumen de hoy + recordatorios a clientes
 cron.schedule('0 8 * * *', async () => {
-    await enviarRecordatoriosAClientes();
+    await enviarResumenHoyAPapa();
     await new Promise(resolve => setTimeout(resolve, 60000));
-    enviarResumenHoyAPapa();
+    enviarRecordatoriosAClientes();
 }, {
     timezone: "America/Argentina/Buenos_Aires"
 });
