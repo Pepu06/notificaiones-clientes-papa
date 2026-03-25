@@ -152,27 +152,22 @@ app.get('/accion', async (req, res) => {
 });
 
 // // Programamos la tarea para todos los días a las 08:00 AM hora de Argentina
-// cron.schedule('0 8 * * *', async () => {
-//     console.log("⏰ Ejecutando tareas programadas de las 8:00 AM...");
-    
-//     // Llamamos a tus funciones
-//     await enviarResumenHoyAPapa();
-//     await enviarRecordatoriosAClientes();
-    
-//     console.log("✅ Tareas de las 8 AM finalizadas.");
-// }, {
-//     scheduled: true,
-//     timezone: "America/Argentina/Buenos_Aires" // Clave para que se ejecute a tu hora
-// });
+cron.schedule('0 8 * * *', async () => {
+    console.log("⏰ Ejecutando tareas programadas de las 8:00 AM...");
+ 
+    // Llamamos a tus funciones
+    await enviarResumenHoyAPapa();
+    await enviarRecordatoriosAClientes();
+ 
+    console.log("✅ Tareas de las 8 AM finalizadas.");
+}, {
+    scheduled: true,
+    timezone: "America/Argentina/Buenos_Aires" // Clave para que se ejecute a tu hora
+});
 
 
 // Iniciamos el servidor web
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor listo en puerto ${PORT}`);
-    
-    // Ejecución de prueba 5 segundos después del arranque
-    setTimeout(() => {
-        enviarRecordatoriosAClientes();
-    }, 5000);
 });
 
