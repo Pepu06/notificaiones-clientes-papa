@@ -111,86 +111,44 @@ async function enviarWhatsApp(numero, texto) {
     }
 }
 
-// --- NUEVO: RUTAS DEL SERVIDOR WEB ---
+// --- RUTAS EXPRESS ---
 
-// 1. Ruta que muestra la "Card" de confirmación al cliente (similar a tu imagen)
+// Ruta de prueba para verificar que la app responda
+app.get('/', (req, res) => res.send('✅ Servidor de Notificaciones Activo'));
+
 app.get('/turno', async (req, res) => {
-    const token = req.query.token;
+    const { token } = req.query;
     if (!token) return res.status(400).send("Link inválido.");
-
     try {
-        // Decodificamos el token para obtener el ID real
         const eventId = Buffer.from(token, 'base64').toString('utf-8');
-
-        // Traemos los datos del evento para mostrarlos en la pantalla
         const evento = await calendar.events.get({ calendarId: CALENDAR_ID_PAPA, eventId: eventId });
         const { summary, location, start } = evento.data;
-
         const fecha = new Date(start.dateTime || start.date);
         fecha.setHours(fecha.getHours() - 3);
         const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-        // HTML similar al diseño de tu imagen
-        const html = `
-        <!DOCTYPE html>
-        <html lang="es">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Gestionar Turno</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f7f7; display: flex; justify-content: center; padding: 20px; color: #333; }
-                .card { background: white; border-radius: 16px; padding: 24px; max-width: 400px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-                h1 { text-align: center; font-size: 24px; margin-bottom: 5px; }
-                p.subtitle { text-align: center; color: #666; margin-bottom: 24px; }
-                .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
-                .info-label { color: #888; }
-                .info-value { font-weight: 500; text-align: right; max-width: 60%; }
-                .btn { display: block; width: 100%; padding: 14px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: bold; margin-top: 12px; box-sizing: border-box; }
-                .btn-confirm { background-color: #4A9A6E; color: white; margin-top: 24px; }
-                .btn-cancel { background-color: #f0f0f0; color: #333; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>Tu turno es hoy</h1>
-                <p class="subtitle">Confirmá o cancelá con un toque</p>
-                
-                <div class="info-row"><span class="info-label">Detalle</span><span class="info-value">${summary.split('+')[0]}</span></div>
-                <div class="info-row"><span class="info-label">Horario</span><span class="info-value">${horaStr} hs</span></div>
-                <div class="info-row"><span class="info-label">Dirección</span><span class="info-value">${location || 'A convenir'}</span></div>
-                
-                <a href="/accion?token=${token}&estado=CONFIRMADO" class="btn btn-confirm">Confirmar turno</a>
-                <a href="/accion?token=${token}&estado=CANCELADO" class="btn btn-cancel">Cancelar turno</a>
-            </div>
-        </body>
-        </html>
-        `;
-        res.send(html);
-
-    } catch (error) {
-        res.status(500).send("Error al cargar el turno o el link ya expiró.");
-    }
+        res.send(`
+            <body style="font-family:sans-serif; background:#f0f2f5; display:flex; justify-content:center; padding:20px;">
+                <div style="background:white; padding:30px; border-radius:15px; max-width:400px; width:100%; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="margin-top:0">Tu visita es hoy</h2>
+                    <p><strong>Detalle:</strong> ${summary.split('+')[0]}</p>
+                    <p><strong>Hora:</strong> ${horaStr} hs</p>
+                    <p><strong>Lugar:</strong> ${location || 'Dirección acordada'}</p>
+                    <a href="/accion?token=${token}&estado=CONFIRMADO" style="display:block; background:#4A9A6E; color:white; padding:15px; text-align:center; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:20px;">Confirmar Asistencia</a>
+                    <a href="/accion?token=${token}&estado=CANCELADO" style="display:block; background:#eee; color:#333; padding:15px; text-align:center; text-decoration:none; border-radius:8px; font-weight:bold; margin-top:10px;">Cancelar</a>
+                </div>
+            </body>
+        `);
+    } catch (e) { res.status(500).send("El turno ya no está disponible."); }
 });
 
-// 2. Ruta que procesa el clic en los botones
 app.get('/accion', async (req, res) => {
     const { token, estado } = req.query;
-    if (!token || !estado) return res.status(400).send("Faltan parámetros.");
-
     try {
         const eventId = Buffer.from(token, 'base64').toString('utf-8');
         await actualizarEstadoEvento(eventId, estado);
-
-        res.send(`
-            <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-                <h2 style="color: #4A9A6E;">¡Listo! Tu visita fue marcada como ${estado}.</h2>
-                <p>Ya podés cerrar esta pestaña.</p>
-            </div>
-        `);
-    } catch (error) {
-        res.status(500).send("Hubo un error al procesar tu solicitud.");
-    }
+        res.send(`<h2 style="font-family:sans-serif; text-align:center; color:#4A9A6E; margin-top:50px;">¡Gracias! Estado actualizado a ${estado}.</h2>`);
+    } catch (e) { res.status(500).send("Error al actualizar."); }
 });
 
 // // Programamos la tarea para todos los días a las 08:00 AM hora de Argentina
@@ -210,8 +168,11 @@ app.get('/accion', async (req, res) => {
 
 // Iniciamos el servidor web
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor web escuchando en el puerto ${PORT}`);
-    console.log("⏳ Cron job activado para las 8:00 AM (Hora Argentina)");
+    console.log(`🚀 Servidor listo en puerto ${PORT}`);
+    
+    // Ejecución de prueba 5 segundos después del arranque
+    setTimeout(() => {
+        enviarRecordatoriosAClientes();
+    }, 5000);
 });
-enviarRecordatoriosAClientes(); // Ejecutamos una vez al iniciar para pruebas rápidas
 
