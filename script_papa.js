@@ -207,10 +207,10 @@ app.get('/accion', async (req, res) => {
 //     timezone: "America/Argentina/Buenos_Aires" // Clave para que se ejecute a tu hora
 // });
 
-enviarRecordatoriosAClientes(); // Ejecutamos una vez al iniciar para pruebas rápidas
 
 // Iniciamos el servidor web
 app.listen(PORT, '0.0.0.0', () => {
+    enviarRecordatoriosAClientes(); // Ejecutamos una vez al iniciar para pruebas rápidas
     console.log(`🚀 Servidor web escuchando en el puerto ${PORT}`);
     console.log("⏳ Cron job activado para las 8:00 AM (Hora Argentina)");
 });
