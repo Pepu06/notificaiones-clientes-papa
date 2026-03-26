@@ -47,6 +47,60 @@ async function actualizarEstadoEvento(eventId, estado) {
     }
 }
 
+async function enviarResumenHoyAPapa() {
+    console.log("Armando resumen de hoy para papá...");
+
+    const mananaInicio = new Date(); mananaInicio.setHours(0, 0, 0, 0);
+    const mananaFin = new Date(); mananaFin.setHours(23, 59, 59, 999);
+
+    try {
+        const res = await calendar.events.list({
+            calendarId: CALENDAR_ID_PAPA,
+            timeMin: mananaInicio.toISOString(),
+            timeMax: mananaFin.toISOString(),
+            singleEvents: true,
+            orderBy: 'startTime',
+        });
+
+        const eventos = filtrarEventosQueMostrar(res.data.items || []);
+
+        if (eventos.length === 0) {
+            await enviarWhatsApp(NUMERO_PAPA, "Hola! No hay visitas agendadas para hoy.");
+            return;
+        }
+
+        let resumen = "📅 *Resumen de eventos de hoy:*\n\n";
+
+        for (const evento of eventos) {
+            const fecha = new Date(evento.start.dateTime || evento.start.date);
+            fecha.setHours(fecha.getHours() - 3);
+            const horaAjustada = fecha.toLocaleTimeString('es-AR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+
+            const texto = evento.summary.toLowerCase();
+            let mensajeLinea = "";
+
+            if (texto.startsWith("mostrar")) {
+                mensajeLinea = `🔑 *Visita:* ${evento.summary}`;
+            } else if (texto.startsWith("depto")) {
+                mensajeLinea = `🏠 *Gestión:* ${evento.summary}`;
+            } else {
+                mensajeLinea = evento.summary;
+            }
+
+            resumen += `• ${horaAjustada}: ${mensajeLinea}\n`;
+        }
+
+        await enviarWhatsApp(NUMERO_PAPA, resumen);
+        console.log("Resumen diario enviado a papá.");
+    } catch (error) {
+        console.error("Error al enviar resumen diario:", error);
+    }
+}
+
 async function enviarRecordatoriosAClientes() {
     console.log("Enviando recordatorios a clientes para hoy...");
     const mananaInicio = new Date(); mananaInicio.setHours(0, 0, 0, 0);
@@ -184,7 +238,6 @@ app.get('/turno', async (req, res) => {
         const detalle = summary.split('+')[0].trim();
         const lugar = location || 'Dirección acordada';
 
-        // Si ya fue respondido, mostrar el estado actual sin los botones
         if (summary.includes('- CONFIRMADO')) return res.send(pagina(`
             <div class="header">${badge()}<h1>Ya respondiste<br>este turno</h1></div>
             <div class="card">
@@ -207,7 +260,6 @@ app.get('/turno', async (req, res) => {
             </div>
         `));
 
-        // Página principal con los botones
         res.send(pagina(`
             <div class="header">
               ${badge()}
