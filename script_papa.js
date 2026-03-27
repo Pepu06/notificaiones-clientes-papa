@@ -122,7 +122,7 @@ async function enviarRecordatoriosAClientes() {
             if (!telefono) continue;
 
             const fecha = obtenerFechaInicioEvento(evento);
-            fecha.setHours(fecha.getHours() - 3);
+            fecha.setHours(fecha.getHours());
             const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
             const direccion = evento.location || "la dirección acordada";
 
@@ -131,7 +131,9 @@ async function enviarRecordatoriosAClientes() {
 
             const mensajePaciente = `¡Hola! Te recuerdo que te espero hoy a las ${hora} hs en ${direccion}.\n\nGonzalez Soro, servicios inmobiliarios.\n\n👉 *Por favor, confirmá o cancelá tu visita ingresando a este link de un solo uso:*\n${linkTurno}`;
 
+            console.log(`Enviando recordatorio a ${telefono} para evento "${evento.summary}"...`);
             await enviarWhatsApp(telefono, mensajePaciente);
+            await new Promise(resolve => setTimeout(resolve, 5000));
         }
     } catch (error) {
         console.error("Error al enviar recordatorios:", error);
@@ -144,7 +146,7 @@ async function enviarWhatsApp(numero, texto) {
             to: numero, text: texto
         }, { headers: { 'Authorization': `Bearer ${WASENDER_TOKEN_PAPA}`, 'Content-Type': 'application/json' } });
     } catch (error) {
-        console.error(`❌ Error enviando a ${numero}`);
+        console.error(`❌ Error enviando a ${numero}:`, error.response?.status, error.response?.data || error.message);
     }
 }
 
@@ -327,16 +329,18 @@ app.get('/accion', async (req, res) => {
 
 // ─── Cron y arranque ──────────────────────────────────────────────────────────
 
-cron.schedule('0 8 * * *', async () => {
-    console.log("⏰ Ejecutando tareas de las 8:00 AM...");
-    await enviarResumenHoyAPapa();
-    await enviarRecordatoriosAClientes();
-    console.log("✅ Tareas finalizadas.");
-}, {
-    scheduled: true,
-    timezone: "America/Argentina/Buenos_Aires"
-});
+// cron.schedule('0 8 * * *', async () => {
+//     console.log("⏰ Ejecutando tareas de las 8:00 AM...");
+//     enviarResumenHoyAPapa();
+//     enviarRecordatoriosAClientes();
+//     console.log("✅ Tareas finalizadas.");
+// }, {
+//     scheduled: true,
+//     timezone: "America/Argentina/Buenos_Aires"
+// });
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor listo en puerto ${PORT}`);
 });
+
+enviarRecordatoriosAClientes();
