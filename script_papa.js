@@ -329,18 +329,17 @@ app.get('/accion', async (req, res) => {
 
 // ─── Cron y arranque ──────────────────────────────────────────────────────────
 
-// cron.schedule('0 8 * * *', async () => {
-//     console.log("⏰ Ejecutando tareas de las 8:00 AM...");
-//     enviarResumenHoyAPapa();
-//     enviarRecordatoriosAClientes();
-//     console.log("✅ Tareas finalizadas.");
-// }, {
-//     scheduled: true,
-//     timezone: "America/Argentina/Buenos_Aires"
-// });
+cron.schedule('0 8 * * *', async () => {
+    console.log("⏰ Ejecutando tareas de las 8:00 AM...");
+    enviarResumenHoyAPapa();
+    enviarRecordatoriosAClientes();
+    console.log("✅ Tareas finalizadas.");
+}, {
+    scheduled: true,
+    timezone: "America/Argentina/Buenos_Aires"
+});
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor listo en puerto ${PORT}`);
 });
 
-enviarRecordatoriosAClientes();
