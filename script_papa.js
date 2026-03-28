@@ -331,8 +331,9 @@ app.get('/accion', async (req, res) => {
 
 cron.schedule('0 8 * * *', async () => {
     console.log("⏰ Ejecutando tareas de las 8:00 AM...");
-    enviarResumenHoyAPapa();
-    enviarRecordatoriosAClientes();
+    await enviarResumenHoyAPapa();
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    await enviarRecordatoriosAClientes();
     console.log("✅ Tareas finalizadas.");
 }, {
     scheduled: true,
