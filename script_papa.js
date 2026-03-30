@@ -122,7 +122,7 @@ async function enviarRecordatoriosAClientes() {
             if (!telefono) continue;
 
             const fecha = obtenerFechaInicioEvento(evento);
-            fecha.setHours(fecha.getHours());
+            fecha.setHours(fecha.getHours() - 3);
             const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
             const direccion = evento.location || "la dirección acordada";
 
